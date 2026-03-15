@@ -48,18 +48,10 @@ export default function App() {
    * This is required for accessing the Gemini API.
    */
   useEffect(() => {
-    const checkKey = async () => {
-      try {
-        // @ts-ignore
-        const hasSelected = await window.aistudio.hasSelectedApiKey();
-        setHasKey(hasSelected);
-      } catch (e) {
-        console.error("Failed to check API key", e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    checkKey();
+    // In production/deployed environment, we use the environment variable
+    // so we don't need to ask the user to connect an API key.
+    setHasKey(true);
+    setLoading(false);
   }, []);
 
   /**
