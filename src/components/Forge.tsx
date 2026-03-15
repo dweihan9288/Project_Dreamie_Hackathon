@@ -498,16 +498,25 @@ export default function Forge({ onNavigate }: ForgeProps) {
         finalAvatar = await compressImage(finalAvatar, 800, 0.6);
       }
 
-      await addDoc(collection(db, 'users', user.uid, 'profiles'), {
+      // Add a timeout to the Firestore operation in case the database doesn't exist
+      // or the client is offline, preventing an infinite hang.
+      const savePromise = addDoc(collection(db, 'users', user.uid, 'profiles'), {
         ...loreData,
         uid: user.uid,
         avatar_url: finalAvatar,
         createdAt: serverTimestamp()
       });
+
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Database connection timed out. Please ensure you have created a Firestore Database in your Firebase Console.")), 10000)
+      );
+
+      await Promise.race([savePromise, timeoutPromise]);
       
       onNavigate();
-    } catch (e) {
+    } catch (e: any) {
       console.error("Failed to save lore", e);
+      setErrorMsg(e.message || "Failed to save profile. Please try again.");
       setStep('confirm');
     }
   };
