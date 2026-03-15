@@ -1,0 +1,136 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users/{userId}/profiles
+    // Document ID: auto-generated
+    // Fields:
+    //   - uid: string (required, immutable) - The Firebase Auth UID
+    //   - genre: string (required)
+    //   - character_role: string (required)
+    //   - primary_enemies: string (required)
+    //   - visual_aesthetic: string (required)
+    //   - core_motivation: string (required)
+    //   - avatar_url: string (required, max 100000 chars for base64)
+    //   - createdAt: timestamp (required, immutable)
+    //
+    // Collection: users/{userId}/quests
+    // Document ID: auto-generated
+    // Fields:
+    //   - uid: string (required, immutable)
+    //   - profileId: string (required)
+    //   - arc_title: string (required)
+    //   - mappings: string (required, max 100000 chars)
+    //   - scenes: string (required, max 100000 chars)
+    //   - createdAt: timestamp (required, immutable)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+    
+    function uidUnchanged() {
+      return !('uid' in request.resource.data) || request.resource.data.uid == request.auth.uid;
+    }
+    
+    function uidNotModified() {
+      return !('uid' in request.resource.data) || request.resource.data.uid == resource.data.uid;
+    }
+    
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+    
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function validStringLength(field, minLen, maxLen) {
+      return request.resource.data[field] is string &&
+        request.resource.data[field].size() >= minLen &&
+        request.resource.data[field].size() <= maxLen;
+    }
+
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidProfile(data) {
+      return hasOnlyAllowedFields(['uid', 'genre', 'character_role', 'primary_enemies', 'visual_aesthetic', 'core_motivation', 'avatar_url', 'createdAt']) &&
+             data.uid is string && data.uid.size() > 0 && data.uid.size() < 100 &&
+             data.genre is string && data.genre.size() > 0 && data.genre.size() < 1000 &&
+             data.character_role is string && data.character_role.size() > 0 && data.character_role.size() < 1000 &&
+             data.primary_enemies is string && data.primary_enemies.size() > 0 && data.primary_enemies.size() < 1000 &&
+             data.visual_aesthetic is string && data.visual_aesthetic.size() > 0 && data.visual_aesthetic.size() < 1000 &&
+             data.core_motivation is string && data.core_motivation.size() > 0 && data.core_motivation.size() < 1000 &&
+             data.avatar_url is string && data.avatar_url.size() > 0 && data.avatar_url.size() < 2000000 && // Base64 can be large
+             data.createdAt is timestamp;
+    }
+
+    function isValidQuest(data) {
+      return hasOnlyAllowedFields(['uid', 'profileId', 'arc_title', 'mappings', 'scenes', 'createdAt']) &&
+             data.uid is string && data.uid.size() > 0 && data.uid.size() < 100 &&
+             data.profileId is string && data.profileId.size() > 0 && data.profileId.size() < 100 &&
+             data.arc_title is string && data.arc_title.size() > 0 && data.arc_title.size() < 1000 &&
+             data.mappings is string && data.mappings.size() > 0 && data.mappings.size() < 100000 &&
+             data.scenes is string && data.scenes.size() > 0 && data.scenes.size() < 100000 &&
+             data.createdAt is timestamp;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      // Deny all operations on the user document itself for now
+      allow read, write: if false;
+      
+      match /profiles/{profileId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && 
+                         isValidProfile(request.resource.data) && 
+                         uidUnchanged();
+        allow update: if isOwner(userId) && 
+                         isDocOwner() &&
+                         isValidProfile(request.resource.data) && 
+                         uidNotModified() &&
+                         areImmutableFieldsUnchanged(['createdAt', 'uid']);
+        allow delete: if isOwner(userId) && isDocOwner();
+      }
+
+      match /quests/{questId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && 
+                         isValidQuest(request.resource.data) && 
+                         uidUnchanged();
+        allow update: if isOwner(userId) && 
+                         isDocOwner() &&
+                         isValidQuest(request.resource.data) && 
+                         uidNotModified() &&
+                         areImmutableFieldsUnchanged(['createdAt', 'uid']);
+        allow delete: if isOwner(userId) && isDocOwner();
+      }
+    }
+  }
+}

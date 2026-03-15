@@ -1,0 +1,8 @@
+{
+  "name": "[V5] Project Dreamie",
+  "description": "An ADHD executive dysfunction app that turns chores into epic quests using Gemini Live.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ]
+}

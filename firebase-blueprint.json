@@ -1,0 +1,81 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "A user's fantasy persona and aesthetic preferences.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "The Firebase Auth UID of the user who owns this profile."
+        },
+        "genre": {
+          "type": "string"
+        },
+        "character_role": {
+          "type": "string"
+        },
+        "primary_enemies": {
+          "type": "string"
+        },
+        "visual_aesthetic": {
+          "type": "string"
+        },
+        "core_motivation": {
+          "type": "string"
+        },
+        "avatar_url": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "timestamp"
+        }
+      },
+      "required": ["uid", "genre", "character_role", "primary_enemies", "visual_aesthetic", "core_motivation", "avatar_url", "createdAt"]
+    },
+    "Quest": {
+      "title": "Quest",
+      "description": "A generated quest plan.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "The Firebase Auth UID of the user who owns this quest."
+        },
+        "profileId": {
+          "type": "string",
+          "description": "The ID of the profile this quest belongs to."
+        },
+        "arc_title": {
+          "type": "string"
+        },
+        "mappings": {
+          "type": "string",
+          "description": "JSON stringified array of ActionMappings"
+        },
+        "scenes": {
+          "type": "string",
+          "description": "JSON stringified array of StoryScenes"
+        },
+        "createdAt": {
+          "type": "timestamp"
+        }
+      },
+      "required": ["uid", "profileId", "arc_title", "mappings", "scenes", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/profiles/{profileId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "Stores the user's fantasy profiles."
+    },
+    "/users/{userId}/quests/{questId}": {
+      "schema": {
+        "$ref": "#/entities/Quest"
+      },
+      "description": "Stores the user's generated quests."
+    }
+  }
+}
