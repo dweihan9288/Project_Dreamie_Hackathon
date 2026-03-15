@@ -45,5 +45,8 @@ steps:
       - '8080' # Matches the port exposed in the Dockerfile
     id: 'Deploy to Cloud Run'
 
+options:
+  logging: CLOUD_LOGGING_ONLY
+
 images:
   - 'gcr.io/$PROJECT_ID/dreamie-app'
