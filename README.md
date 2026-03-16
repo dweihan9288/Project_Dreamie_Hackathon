@@ -38,6 +38,18 @@ The app will be available at `http://localhost:3000` (or the port specified in y
 
 ---
 
+## 📱 Testing on your mobile device
+
+To use the app on your mobile device, please access through the link: https://dreamie-app-698591699015.us-central1.run.app/
+
+---
+
+## 🧪 Testing Credentials for Judges
+
+To test the live application without creating an account, simply just Enter as Guest
+
+---
+
 ## ☁️ Cloud Deployment (Google Cloud Run)
 
 This project includes automated deployment scripts to prove infrastructure-as-code practices, fulfilling the hackathon automation requirements.
@@ -54,11 +66,3 @@ gcloud builds submit --config cloudbuild.yaml
 ```
 
 ---
-
-## 🧪 Testing Credentials for Judges
-
-To test the live application without creating an account, please use the following credentials:
-- **Email:** `judge@test.com`
-- **Password:** `password123`
-
-*(Note to developer: Ensure you create this account in your Firebase Auth console before submitting!)*

@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Dreamie — System Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue: #1a73e8;
+    --blue-bg: #e8f0fe;
+    --blue-border: #c6dafc;
+    --orange: #e37400;
+    --orange-bg: #fef7e0;
+    --orange-border: #fce8b2;
+    --green: #0d652d;
+    --green-bg: #e6f4ea;
+    --green-border: #a8dab5;
+    --teal: #00695c;
+    --teal-bg: #e0f2f1;
+    --teal-border: #80cbc4;
+    --purple: #6a1b9a;
+    --purple-bg: #f3e8fd;
+    --purple-border: #ce93d8;
+    --gray: #5f6368;
+    --gray-bg: #f1f3f4;
+    --gray-border: #dadce0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #f0f2f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 32px;
+  }
+
+  .canvas {
+    position: relative;
+    width: 1400px;
+    height: 880px;
+    background: #fff;
+    border: 1.5px solid #dadce0;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(60,64,67,0.1);
+    overflow: hidden;
+  }
+
+  /* ═══ Title ═══ */
+  .title {
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 44px;
+    background: linear-gradient(135deg, #1a73e8, #1557b0);
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 14px 14px 0 0;
+    z-index: 10;
+  }
+  .title h1 { font-size: 14px; font-weight: 700; color: #fff; letter-spacing: 0.6px; }
+
+  /* ═══ Zone containers ═══ */
+  .zone {
+    position: absolute;
+    border-radius: 14px;
+    border: 1.5px solid;
+  }
+  .zone-label {
+    position: absolute;
+    top: -11px;
+    padding: 2px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    border-radius: 4px;
+    z-index: 3;
+  }
+  .zone-sub {
+    position: absolute;
+    border-radius: 10px;
+    border: 1.5px dashed;
+  }
+  .zone-sub-label {
+    position: absolute;
+    top: -10px;
+    padding: 1px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border-radius: 3px;
+    z-index: 3;
+  }
+
+  /* ═══ Component boxes ═══ */
+  .node {
+    position: absolute;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border: 1.5px solid;
+    z-index: 3;
+    white-space: nowrap;
+  }
+  .node .ic {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .node .nm { font-size: 12px; font-weight: 600; line-height: 1.25; }
+  .node .dt { font-size: 9px; font-weight: 500; opacity: 0.65; letter-spacing: 0.15px; }
+
+  /* Color classes */
+  .c-blue  { background: var(--blue-bg); border-color: var(--blue-border); color: #174ea6; }
+  .c-blue .ic { background: var(--blue); color: #fff; }
+  .c-dkblue { background: #d2e3fc; border-color: #7baaf7; color: #174ea6; }
+  .c-dkblue .ic { background: #174ea6; color: #fff; }
+  .c-orange { background: var(--orange-bg); border-color: var(--orange-border); color: #e65100; }
+  .c-orange .ic { background: #fb8c00; color: #fff; }
+  .c-green { background: var(--green-bg); border-color: var(--green-border); color: var(--green); }
+  .c-green .ic { background: #1e8e3e; color: #fff; }
+  .c-teal  { background: var(--teal-bg); border-color: var(--teal-border); color: #004d40; }
+  .c-teal .ic { background: #00897b; color: #fff; }
+  .c-purple { background: var(--purple-bg); border-color: var(--purple-border); color: var(--purple); }
+  .c-purple .ic { background: #8e24aa; color: #fff; }
+  .c-gray  { background: var(--gray-bg); border-color: var(--gray-border); color: var(--gray); }
+  .c-gray .ic { background: var(--gray); color: #fff; }
+  .c-cyan  { background: #e0f7fa; border-color: #80deea; color: #006064; }
+  .c-cyan .ic { background: #00838f; color: #fff; }
+
+  /* ═══ Tags ═══ */
+  .tag {
+    display: inline-block;
+    padding: 3px 8px; border-radius: 10px;
+    font-size: 8px; font-weight: 700; letter-spacing: 0.3px;
+  }
+
+  /* ═══ SVG ═══ */
+  svg.wires {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 2;
+  }
+  .wire { fill: none; stroke-width: 2; stroke-linecap: round; }
+  .w-orange { stroke: #fbbc04; }
+  .w-teal   { stroke: #26a69a; }
+  .w-green  { stroke: #4caf50; }
+  .w-purple { stroke: #ab47bc; }
+  .w-dash   { stroke-dasharray: 6 4; }
+  .wire-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 9px; font-weight: 700; letter-spacing: 0.3px;
+  }
+
+  /* ═══ Legend ═══ */
+  .legend {
+    position: absolute;
+    bottom: 10px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 24px; align-items: center;
+    padding: 6px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 20px;
+    font-size: 9px; font-weight: 600; color: #5f6368; z-index: 10;
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-bar { width: 20px; height: 2.5px; border-radius: 2px; }
+
+  /* ═══ Pill ═══ */
+  .pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 10px;
+    font-size: 8.5px; font-weight: 700;
+  }
+</style>
+</head>
+<body>
+<div class="canvas">
+
+  <!-- ═══ TITLE ═══ -->
+  <div class="title">
+    <h1>Project Dreamie — System Architecture</h1>
+  </div>
+
+  <!-- ═══ SVG CONNECTIONS ═══ -->
+  <svg class="wires" viewBox="0 0 1400 880">
+    <defs>
+      <marker id="arr-o" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6Z" fill="#fbbc04"/></marker>
+      <marker id="arr-t" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6Z" fill="#26a69a"/></marker>
+      <marker id="arr-g" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6Z" fill="#4caf50"/></marker>
+      <marker id="arr-p" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6Z" fill="#ab47bc"/></marker>
+    </defs>
+
+    <!-- CLIENT → FIREBASE: single clean line going right then up -->
+    <path d="M 468 135 L 510 135" class="wire w-orange" marker-end="url(#arr-o)"/>
+    <rect x="470" y="125" width="38" height="14" rx="4" fill="#fff" opacity="0.9"/>
+    <text x="489" y="135" class="wire-label" fill="#e37400" text-anchor="middle">R/W</text>
+
+    <!-- CLIENT → LIVE API: clean horizontal line -->
+    <path d="M 468 340 L 510 340" class="wire w-teal" marker-end="url(#arr-t)" stroke-width="2.5"/>
+    <rect x="469" y="347" width="40" height="12" rx="3" fill="#fff" opacity="0.9"/>
+    <text x="489" y="356" class="wire-label" fill="#26a69a" text-anchor="middle">stream</text>
+
+    <!-- CLIENT → GENERATION: clean horizontal line -->
+    <path d="M 468 535 L 510 535" class="wire w-green" marker-end="url(#arr-g)"/>
+
+    <!-- CLIENT → MULTI-AGENT: line going right -->
+    <path d="M 468 665 L 510 665" class="wire w-green" marker-end="url(#arr-g)"/>
+
+    <!-- CLIENT → VEO: line going right -->
+    <path d="M 468 800 L 510 800" class="wire w-purple" marker-end="url(#arr-p)"/>
+
+    <!-- Chain arrows: Mapping → Narrative → Planner -->
+    <path d="M 725 660 L 755 660" class="wire w-green" marker-end="url(#arr-g)"/>
+    <path d="M 925 660 L 955 660" class="wire w-green" marker-end="url(#arr-g)"/>
+  </svg>
+
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- ZONE: CLIENT SPA (left column)                  -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="zone" style="top:60px; left:16px; width:456px; height:810px; border-color:var(--blue-border); background:#f0f5ff;">
+    <span class="zone-label" style="left:14px; color:var(--blue); background:#f0f5ff;">Client — React SPA</span>
+    <span style="position:absolute; top:10px; left:14px; font-size:10px; color:#5f6368; font-weight:500;">Deployed on Google Cloud Run</span>
+
+    <!-- Sub: Views -->
+    <div class="zone-sub" style="top:35px; left:12px; width:430px; height:248px; border-color:var(--blue-border); background:rgba(232,240,254,0.3);">
+      <span class="zone-sub-label" style="left:10px; color:var(--blue); background:#f0f5ff;">Application Views</span>
+
+      <div class="node c-dkblue" style="top:20px; left:10px; width:410px;">
+        <div class="ic">🔐</div>
+        <div><div class="nm">Authentication</div><div class="dt">Google · Email · Anonymous</div></div>
+      </div>
+      <div class="node c-blue" style="top:72px; left:10px; width:195px;">
+        <div class="ic">🛡️</div>
+        <div><div class="nm">The Armory</div><div class="dt">Profile Dashboard</div></div>
+      </div>
+      <div class="node c-blue" style="top:124px; left:10px; width:195px;">
+        <div class="ic">⚒️</div>
+        <div><div class="nm">The Forge</div><div class="dt">Selfie + Voice Interview</div></div>
+      </div>
+      <div class="node c-blue" style="top:176px; left:10px; width:195px;">
+        <div class="ic">🔭</div>
+        <div><div class="nm">Scouting</div><div class="dt">Camera Scout + Quest Plan</div></div>
+      </div>
+      <div class="node c-blue" style="top:72px; right:10px; width:195px;">
+        <div class="ic">⚔️</div>
+        <div><div class="nm">Battlefield</div><div class="dt">Supervision + Story Play</div></div>
+      </div>
+      <div class="node c-cyan" style="top:124px; right:10px; width:195px;">
+        <div class="ic">🎮</div>
+        <div><div class="nm">Final Boss QTE</div><div class="dt">Three.js Game + Veo Videos</div></div>
+      </div>
+
+      <!-- Flow note -->
+      <div style="position:absolute; bottom:12px; right:12px; left:12px; padding:6px 12px; background:#fff; border:1px dashed var(--blue-border); border-radius:8px; font-size:10px; color:#5f6368; line-height:1.6; text-align: center;">
+        <span style="font-weight:700; color:var(--blue);">Flow:</span> Auth → Armory → Forge → Scouting → Battlefield → QTE
+      </div>
+    </div>
+
+    <!-- Sub: Client Internals -->
+    <div class="zone-sub" style="top:298px; left:12px; width:430px; height:170px; border-color:var(--blue-border); background:rgba(232,240,254,0.3);">
+      <span class="zone-sub-label" style="left:10px; color:var(--blue); background:#f0f5ff;">Client Internals</span>
+
+      <div class="node c-teal" style="top:20px; left:10px; width:200px;">
+        <div class="ic" style="font-size:14px;">📡</div>
+        <div><div class="nm">Live Session Manager</div><div class="dt">WebSocket · Audio + Video</div></div>
+      </div>
+      <div class="node c-blue" style="top:72px; left:10px; width:200px;">
+        <div class="ic" style="font-size:14px;">🎧</div>
+        <div><div class="nm">AudioStreamer</div><div class="dt">16kHz Mic → 24kHz Speaker</div></div>
+      </div>
+      <div class="node c-green" style="top:20px; right:10px; width:200px; background:rgba(14,101,45,0.05);">
+        <div class="ic" style="background:#0d652d;">📦</div>
+        <div><div class="nm">Asset Gen Pipeline</div><div class="dt">Background Img + TTS</div></div>
+      </div>
+      <div class="node c-green" style="top:72px; right:10px; width:200px; background:rgba(14,101,45,0.05);">
+        <div class="ic" style="background:#0d652d;">🔄</div>
+        <div><div class="nm">Retry with Backoff</div><div class="dt">Exponential on 429 errors</div></div>
+      </div>
+      <div style="position:absolute; bottom:10px; left:10px; display:flex; gap:5px;">
+        <span class="tag" style="background:#61dafb18; color:#087ea4; border:1px solid #61dafb44;">React 18</span>
+        <span class="tag" style="background:#646cff18; color:#646cff; border:1px solid #646cff44;">Vite</span>
+        <span class="tag" style="background:#3178c618; color:#3178c6; border:1px solid #3178c644;">TypeScript</span>
+        <span class="tag" style="background:#06b6d418; color:#0e7490; border:1px solid #06b6d444;">Tailwind v4</span>
+        <span class="tag" style="background:#00000010; color:#3c4043; border:1px solid #00000020;">Three.js</span>
+        <span class="tag" style="background:#ff572218; color:#bf360c; border:1px solid #ff572244;">Framer Motion</span>
+      </div>
+    </div>
+
+    <!-- Sub: Device APIs -->
+    <div class="zone-sub" style="top:484px; left:12px; width:430px; height:280px; border-color:var(--blue-border); background:rgba(232,240,254,0.25);">
+      <span class="zone-sub-label" style="left:10px; color:var(--blue); background:#f0f5ff;">Device APIs & Hardware</span>
+      
+      <div style="display: flex; flex-direction: column; gap: 16px; padding: 24px 16px; height: 100%; justify-content: center;">
+        <div class="node c-gray" style="position:relative; width:100%;">
+          <div class="ic" style="width: 48px; height: 48px; font-size: 24px;">📷</div>
+          <div><div class="nm" style="font-size: 14px;">Camera</div><div class="dt" style="font-size: 11px;">Rear Facing · Live Environment Observation</div></div>
+        </div>
+        <div class="node c-gray" style="position:relative; width:100%;">
+          <div class="ic" style="width: 48px; height: 48px; font-size: 24px;">🎤</div>
+          <div><div class="nm" style="font-size: 14px;">Microphone</div><div class="dt" style="font-size: 11px;">AudioWorklet · Voice Instructions</div></div>
+        </div>
+        <div class="node c-gray" style="position:relative; width:100%;">
+          <div class="ic" style="width: 48px; height: 48px; font-size: 24px;">🔊</div>
+          <div><div class="nm" style="font-size: 14px;">Speaker</div><div class="dt" style="font-size: 11px;">Web Audio · TTS Narration & SFX</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Deploy badges -->
+    <div style="position:absolute; bottom:14px; left:14px; display:flex; gap:8px;">
+      <span class="pill" style="background:var(--blue-bg); color:var(--blue); border:1px solid var(--blue-border);">☁️ Docker → Cloud Run</span>
+      <span class="pill" style="background:var(--blue-bg); color:var(--blue); border:1px solid var(--blue-border);">🔧 Express server.ts</span>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- ZONE: FIREBASE (top-right)                      -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="zone" style="top:60px; left:506px; width:878px; height:186px; border-color:var(--orange-border); background:#fffdf5;">
+    <span class="zone-label" style="left:14px; color:var(--orange); background:#fffdf5;">Firebase</span>
+
+    <div class="node c-orange" style="top:22px; left:14px; width:200px;">
+      <div class="ic">🔑</div>
+      <div><div class="nm">Firebase Auth</div><div class="dt">Google OAuth · Email · Anonymous</div></div>
+    </div>
+
+    <div class="node c-orange" style="top:22px; left:228px; width:200px;">
+      <div class="ic">🗄️</div>
+      <div><div class="nm">Cloud Firestore</div><div class="dt">NoSQL Document Database</div></div>
+    </div>
+
+    <!-- Data model -->
+    <div style="position:absolute; top:22px; right:14px; display:flex; gap:16px;">
+      <div>
+        <div style="display:flex; align-items:center; gap:5px; font-size:10px; color:#e65100; font-weight:700; margin-bottom:3px;">
+          <div style="width:5px; height:5px; background:#fb8c00; border-radius:2px;"></div>
+          users/{uid}/profiles
+        </div>
+        <div style="font-size:8.5px; color:#9e9e9e; margin-left:10px; line-height:1.5;">
+          genre · character_role · avatar_url<br>
+          primary_enemies · visual_aesthetic
+        </div>
+      </div>
+      <div>
+        <div style="display:flex; align-items:center; gap:5px; font-size:10px; color:#e65100; font-weight:700; margin-bottom:3px;">
+          <div style="width:5px; height:5px; background:#fb8c00; border-radius:2px;"></div>
+          users/{uid}/quests
+        </div>
+        <div style="font-size:8.5px; color:#9e9e9e; margin-left:10px; line-height:1.5;">
+          arc_title · mappings (JSON)<br>
+          scenes (JSON) · profileId
+        </div>
+      </div>
+    </div>
+
+    <!-- Security -->
+    <div style="position:absolute; bottom:14px; left:14px; right:14px; padding:12px 16px; background:#fff3e0; border:1px solid #ffe0b2; border-radius:8px; font-size:11px; color:#bf360c; font-weight:600; display:flex; align-items:center; gap:30px; justify-content:center;">
+      <span style="font-size: 13px;">🔒 Firestore Security Rules</span>
+      <span style="font-weight:500; background: rgba(255,255,255,0.5); padding: 4px 12px; border-radius: 4px;">Owner-only: uid == request.auth.uid</span>
+      <span style="font-weight:500; background: rgba(255,255,255,0.5); padding: 4px 12px; border-radius: 4px;">Immutable: uid, createdAt</span>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- ZONE: AI ECOSYSTEM (right, below Firebase)      -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="zone" style="top:264px; left:506px; width:878px; height:606px; border-color:var(--green-border); background:#f5fbf7;">
+    <span class="zone-label" style="right:14px; color:var(--green); background:#f5fbf7;">Gemini AI Ecosystem</span>
+
+    <!-- ── Sub: Live API ── -->
+    <div class="zone-sub" style="top:22px; left:12px; width:852px; height:148px; border-color:var(--green-border); background:rgba(232,246,237,0.35);">
+      <span class="zone-sub-label" style="left:10px; color:var(--green); background:#f5fbf7;">Live API — Real-time Multimodal Streaming</span>
+
+      <div class="node c-teal" style="top:18px; left:10px; width:260px;">
+        <div class="ic">🎙️</div>
+        <div><div class="nm">Interview Agent</div><div class="dt">gemini-2.5-flash-native-audio · Zephyr</div></div>
+      </div>
+      <div class="node c-teal" style="top:70px; left:10px; width:260px;">
+        <div class="ic">🔭</div>
+        <div><div class="nm">Scout Agent</div><div class="dt">gemini-2.5-flash-native-audio · Fenrir</div></div>
+      </div>
+      <div class="node c-teal" style="top:18px; left:286px; width:260px;">
+        <div class="ic">👁️</div>
+        <div><div class="nm">Supervision Agent</div><div class="dt">gemini-2.5-flash-native-audio · Fenrir</div></div>
+      </div>
+
+      <!-- Capabilities -->
+      <div style="position:absolute; top:16px; right:12px; display:flex; flex-direction:column; gap:8px; width: 260px;">
+        <div style="display: flex; gap: 8px;">
+          <span class="pill" style="flex: 1; justify-content: center; padding: 6px 10px; font-size: 10px; background:var(--teal-bg); color:#004d40; border:1px solid var(--teal-border);">🔈 Voice-to-Voice</span>
+          <span class="pill" style="flex: 1; justify-content: center; padding: 6px 10px; font-size: 10px; background:var(--teal-bg); color:#004d40; border:1px solid var(--teal-border);">📹 Vision (1 FPS)</span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <span class="pill" style="flex: 1; justify-content: center; padding: 6px 10px; font-size: 10px; background:var(--teal-bg); color:#004d40; border:1px solid var(--teal-border);">🛠️ Function Calling</span>
+          <span class="pill" style="flex: 1; justify-content: center; padding: 6px 10px; font-size: 10px; background:var(--teal-bg); color:#004d40; border:1px solid var(--teal-border);">⚡ Interruptions</span>
+        </div>
+      </div>
+
+      <!-- Used by note -->
+      <div style="position:absolute; bottom:10px; left:286px; padding:4px 10px; background:rgba(255,255,255,0.7); border:1px dashed var(--teal-border); border-radius:6px; font-size:8px; color:#004d40; font-weight:600;">
+        Used by: The Forge (interview) · Scouting (camera scout) · Battlefield (supervision)
+      </div>
+    </div>
+
+    <!-- ── Sub: Generation API ── -->
+    <div class="zone-sub" style="top:186px; left:12px; width:852px; height:132px; border-color:var(--green-border); background:rgba(232,246,237,0.35);">
+      <span class="zone-sub-label" style="left:10px; color:var(--green); background:#f5fbf7;">Generation API — Images · Text · Audio</span>
+
+      <div class="node c-green" style="top:18px; left:10px; width:255px;">
+        <div class="ic">📸</div>
+        <div><div class="nm">Flash Image Generator</div><div class="dt">gemini-3.1-flash-image-preview</div></div>
+      </div>
+      <div class="node c-green" style="top:68px; left:10px; width:255px;">
+        <div class="ic">🔊</div>
+        <div><div class="nm">TTS Narrator</div><div class="dt">gemini-2.5-flash-preview-tts · Fenrir</div></div>
+      </div>
+      <div class="node c-green" style="top:18px; left:280px; width:255px;">
+        <div class="ic">📝</div>
+        <div><div class="nm">JSON Extractor</div><div class="dt">gemini-3-flash-preview · Structured</div></div>
+      </div>
+      <div class="node c-green" style="top:68px; left:280px; width:255px;">
+        <div class="ic">🎨</div>
+        <div><div class="nm">Fallback Image Gen</div><div class="dt">gemini-2.5-flash-image (no selfie)</div></div>
+      </div>
+
+      <!-- Output formats -->
+      <div style="position:absolute; top:18px; right:12px; display:flex; flex-direction:column; gap:4px;">
+        <div style="display:flex; gap:4px;">
+          <span class="tag" style="background:var(--green-bg); color:var(--green); border:1px solid var(--green-border);">9:16 Portrait</span>
+          <span class="tag" style="background:var(--green-bg); color:var(--green); border:1px solid var(--green-border);">1:1 Avatar</span>
+        </div>
+        <div style="display:flex; gap:4px;">
+          <span class="tag" style="background:var(--green-bg); color:var(--green); border:1px solid var(--green-border);">24kHz PCM</span>
+          <span class="tag" style="background:var(--green-bg); color:var(--green); border:1px solid var(--green-border);">Base64 I/O</span>
+        </div>
+      </div>
+      <div style="position:absolute; bottom:10px; right:12px; padding:4px 10px; background:rgba(255,255,255,0.7); border:1px dashed var(--green-border); border-radius:6px; font-size:8px; color:var(--green); font-weight:600;">
+        Selfie used as structural reference for avatar face generation
+      </div>
+    </div>
+
+    <!-- ── Sub: Multi-Agent Chain ── -->
+    <div class="zone-sub" style="top:334px; left:12px; width:852px; height:128px; border-color:var(--green-border); background:rgba(232,246,237,0.35);">
+      <span class="zone-sub-label" style="left:10px; color:var(--green); background:#f5fbf7;">Multi-Agent Prompt Chain — gemini-3.1-pro-preview</span>
+
+      <div class="node c-green" style="top:18px; left:10px; width:162px; height:46px;">
+        <div class="ic">🗺️</div>
+        <div><div class="nm">Mapping Agent</div><div class="dt">Real → Fantasy</div></div>
+      </div>
+      <div style="position:absolute; top:36px; left:176px; font-size:18px; color:#34a853; font-weight:800;">→</div>
+      <div class="node c-green" style="top:18px; left:198px; width:162px; height:46px;">
+        <div class="ic">📖</div>
+        <div><div class="nm">Narrative Agent</div><div class="dt">Story Arc Generator</div></div>
+      </div>
+      <div style="position:absolute; top:36px; left:364px; font-size:18px; color:#34a853; font-weight:800;">→</div>
+      <div class="node c-green" style="top:18px; left:386px; width:162px; height:46px;">
+        <div class="ic">📋</div>
+        <div><div class="nm">Planner Agent</div><div class="dt">Scenes + Image Prompts</div></div>
+      </div>
+
+      <div class="node c-green" style="top:76px; left:10px; width:220px; height:38px; background:rgba(14,101,45,0.06);">
+        <div class="ic" style="background:#0d652d; width:26px; height:26px; font-size:13px;">🎬</div>
+        <div><div class="nm" style="font-size:11px;">QTE Art Director</div><div class="dt">Frame A/B · Win/Lose prompts</div></div>
+      </div>
+
+      <div style="position:absolute; top:20px; right:14px; padding:8px 14px; background:#ceead6; border-radius:10px; font-size:9px; color:var(--green); font-weight:600; max-width:240px; text-align:center; line-height:1.5;">
+        Each output feeds the next:<br>
+        <b>Image + Transcript → Mappings → Story → Scenes</b>
+      </div>
+      <div style="position:absolute; bottom:10px; right:14px; font-size:8px; color:#4caf50; font-weight:600;">
+        3-5 actions · 2-3 scenes · 4-6 pictures each
+      </div>
+    </div>
+
+    <!-- ── Sub: Video Generation ── -->
+    <div class="zone-sub" style="top:478px; left:12px; width:852px; height:112px; border-color:var(--purple-border); background:rgba(243,232,253,0.25);">
+      <span class="zone-sub-label" style="left:10px; color:var(--purple); background:#f5fbf7;">Video Generation — Veo 3.1</span>
+
+      <div class="node c-purple" style="top:18px; left:10px; width:262px;">
+        <div class="ic">🎥</div>
+        <div><div class="nm">Video Generator</div><div class="dt">veo-3.1-fast-generate-preview · 720p · 9:16</div></div>
+      </div>
+
+      <div style="position:absolute; top:18px; left:290px; display:flex; gap:10px; flex-wrap:wrap; width: 300px;">
+        <span class="tag" style="padding: 6px 12px; font-size: 10px; background:var(--purple-bg); color:var(--purple); border:1px solid var(--purple-border);">① Buildup</span>
+        <span class="tag" style="padding: 6px 12px; font-size: 10px; background:var(--purple-bg); color:var(--purple); border:1px solid var(--purple-border);">② QTE Loop</span>
+        <span class="tag" style="padding: 6px 12px; font-size: 10px; background:#e8f5e9; color:#2e7d32; border:1px solid #a5d6a7;">③ Win</span>
+        <span class="tag" style="padding: 6px 12px; font-size: 10px; background:#ffebee; color:#c62828; border:1px solid #ef9a9a;">④ Lose</span>
+      </div>
+
+      <div style="position:absolute; top:18px; right:14px; padding:6px 12px; background:var(--purple-bg); border:1px solid var(--purple-border); border-radius:8px; font-size:8px; color:var(--purple); font-weight:600; text-align:center; line-height:1.5;">
+        Safety-aware prompting<br>
+        No violent words · Epic vocab
+      </div>
+
+      <div style="position:absolute; bottom:12px; left:10px; right:14px; padding:5px 12px; background:var(--purple-bg); border:1px solid var(--purple-border); border-radius:6px; font-size:8px; color:var(--purple); font-weight:600; text-align:center;">
+        extractLastFrame() chains videos for visual continuity: Frame A → Frame B → Buildup → Last Frame → QTE → Win/Lose
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══ LEGEND ═══ -->
+  <div class="legend">
+    <div class="legend-item"><div class="legend-bar" style="background:#fbbc04;"></div><span>Firebase R/W</span></div>
+    <div class="legend-item"><div class="legend-bar" style="background:#26a69a; height:3px;"></div><span>Live Stream</span></div>
+    <div class="legend-item"><div class="legend-bar" style="background:#4caf50;"></div><span>API Call</span></div>
+    <div class="legend-item"><div class="legend-bar" style="background:#ab47bc;"></div><span>Video Pipeline</span></div>
+  </div>
+
+</div>
+</body>
+</html>
